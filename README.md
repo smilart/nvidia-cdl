@@ -6,12 +6,12 @@ NVIDIA CUDA device list
 Gathers device information and compiles a report with enumerated devices in an order consistent with CUDA API. Original `nvidia-smi` does not provide them in any particular order and this can be a problem on machines with multiple GPUs.
 
 Provides the following information:
-  Driver version
-  GPU name
-  GPU current temperature
-  GPU UUID
-  GPU PCI bus ID
-  GPU memory usage
+- Driver version
+- GPU name
+- GPU current temperature
+- GPU UUID
+- GPU PCI bus ID
+- GPU memory usage
 
 We also support data on actively running processes with command line arguments "--gpu=[number of CUDA device on which the process runs]" hoping that these processes run on the specified GPU.
 
