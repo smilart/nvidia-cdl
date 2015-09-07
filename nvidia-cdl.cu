@@ -8,7 +8,7 @@
  *
  * Contributors:
  *     Alexander Komarov alexander07k@gmail.com - implementation.
- *     
+ *
  */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@ struct DeviceInfo {
     std::string uuid;
     std::vector<RunningProcessInfo> runningProcessesInfo;
 
-    DeviceInfo() 
+    DeviceInfo()
         : temp(0),
         name("N/A"),
         pciBusID("N/A"),
@@ -200,7 +200,7 @@ void printDeviceInfo(const std::vector<DeviceInfo> &deviceInfo, bool isPrintOpti
     for (int i = 0; i < deviceInfo.size(); i++) {
         std::cout << "------------------- " << getBoldText("Device " + intToString(i))  <<" -------------------\n";
         std::cout << "Name: " << getBoldText(deviceInfo[i].name) << std::endl;
-        
+
         std::cout << "Memory usage: ";
         std::cout << std::setw(5) << deviceInfo[i].usedMemory << "MiB" << " / " << std::setw(5) << deviceInfo[i].totalMemory << "MiB" << std::endl;
         std::cout << "Temperature: " << getTemperatureAsColorString(deviceInfo[i].temp) << deviceInfo[i].temp << "C" << REMOVE_ALL_ATTRIBUTES << std::endl;
@@ -260,11 +260,11 @@ void parseParameters(
         // the first iteration - looking for doesn't provided options.
         for (int i = 1; i < argc; ++i) {
             if (argvString[i].compare("-a") != 0 && argvString[i].compare("-h") != 0 && argvString[i].compare("--help") != 0) {
-                throw std::string("Invalid combination of input arguments. Please run 'nvidia-smilart -h' for help.");
+                throw std::string("Invalid combination of input arguments. Please run 'nvidia-cdl -h' for help.");
             } else {
                 // while provides one options at one time.
                 if (isAction) {
-                    throw std::string("Invalid combination of input arguments. Please run 'nvidia-smilart -h' for help.");
+                    throw std::string("Invalid combination of input arguments. Please run 'nvidia-cdl -h' for help.");
                 } else {
                     isAction = true;
                 }
@@ -279,7 +279,7 @@ void parseParameters(
             } else if (argvString[i].compare("-h") == 0 || argvString[i].compare("--help") == 0) {
                 isPrintHelpInfo = true;
             } else {
-                throw std::string("Invalid combination of input arguments. Please run 'nvidia-smilart -h' for help.");
+                throw std::string("Invalid combination of input arguments. Please run 'nvidia-cdl -h' for help.");
             }
         }
     }
@@ -338,7 +338,7 @@ void findProccessesRunningOnDevices(std::vector<DeviceInfo> &deviceInfoFromNVML)
 
             deviceInfoFromNVML[i].runningProcessesInfo.push_back(runningProcessInfo);
         }
-        
+
         pclose(file);
     }
 }
@@ -366,7 +366,7 @@ int main(int argc, char** argv) {
         findProccessesRunningOnDevices(deviceInfoFromNVML);
 
         printDeviceInfo(deviceInfoFromNVML, isPrintOptionalInfoOfDevice);
-        
+
     } catch (std::string &message) {
         std::cout << message << std::endl;
     } catch (...) {
