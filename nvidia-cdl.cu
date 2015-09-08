@@ -21,7 +21,7 @@
 #include <sstream>
 #include <iomanip>
 
-#define PROGRAM_VERSION "1.0"
+#define PROGRAM_VERSION "1.1"
 
 #define REMOVE_ALL_ATTRIBUTES "\e[m"
 #define RED_TEXT "\e[91m"
@@ -118,7 +118,7 @@ std::vector<std::string> getPCIBusIDByCudaLibrary() {
     return pciBusIDArray;
 }
 
-std::vector<DeviceInfo> getDeviceInfoByNVML(const std::vector<std::string> &pciBusIDArray) {
+std::vector<DeviceInfo> getDeviceInfoByNVML(const std::vector<std::string> &pciBusIDArray, std::string &driverVersionString) {
     nvmlReturn_t result;
     // Initialise the library.
     result = nvmlInit();
@@ -127,11 +127,10 @@ std::vector<DeviceInfo> getDeviceInfoByNVML(const std::vector<std::string> &pciB
     char version[NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE];
     unsigned int length = NVML_SYSTEM_NVML_VERSION_BUFFER_SIZE;
     result = nvmlSystemGetDriverVersion(version, length);
-    std::string driverVersionString = "N/A";
+    driverVersionString = "N/A";
     if (NVML_SUCCESS == result) {
         driverVersionString = std::string(version);
     }
-    std::cout << "Driver version: " << getBoldText(driverVersionString) << std::endl;
 
     // Iterate through the devices.
     std::vector<DeviceInfo> deviceInfoArray;
@@ -196,14 +195,34 @@ std::vector<DeviceInfo> getDeviceInfoByNVML(const std::vector<std::string> &pciB
     return deviceInfoArray;
 }
 
-void printDeviceInfo(const std::vector<DeviceInfo> &deviceInfo, bool isPrintOptionalInfoOfDevice) {
+void printDeviceInfo(
+    const std::vector<DeviceInfo> &deviceInfo,
+    std::string &driverVersionString,
+    bool isPrintOptionalInfoOfDevice,
+    bool isPrintPlainOutput
+) {
+    if (isPrintPlainOutput) {
+        std::cout << "Driver version: " << driverVersionString << std::endl;
+    } else {
+        std::cout << "Driver version: " << getBoldText(driverVersionString) << std::endl;
+    }
     for (int i = 0; i < deviceInfo.size(); i++) {
-        std::cout << "------------------- " << getBoldText("Device " + intToString(i))  <<" -------------------\n";
-        std::cout << "Name: " << getBoldText(deviceInfo[i].name) << std::endl;
+        std::string deviceNumber = "Device " + intToString(i);
+        if (isPrintPlainOutput) {
+            std::cout << "------------------- " << deviceNumber  <<" -------------------\n";
+            std::cout << "Name: " << deviceInfo[i].name << std::endl;
+        } else {
+            std::cout << "------------------- " << getBoldText(deviceNumber)  <<" -------------------\n";
+            std::cout << "Name: " << getBoldText(deviceInfo[i].name) << std::endl;
+        }
 
         std::cout << "Memory usage: ";
         std::cout << std::setw(5) << deviceInfo[i].usedMemory << "MiB" << " / " << std::setw(5) << deviceInfo[i].totalMemory << "MiB" << std::endl;
-        std::cout << "Temperature: " << getTemperatureAsColorString(deviceInfo[i].temp) << deviceInfo[i].temp << "C" << REMOVE_ALL_ATTRIBUTES << std::endl;
+        if (isPrintPlainOutput) {
+            std::cout << "Temperature: " << deviceInfo[i].temp << "C" << std::endl;
+        } else {
+            std::cout << "Temperature: " << getTemperatureAsColorString(deviceInfo[i].temp) << deviceInfo[i].temp << "C" << REMOVE_ALL_ATTRIBUTES << std::endl;
+        }
         if (isPrintOptionalInfoOfDevice) {
             std::cout << "PCI bus ID: " << deviceInfo[i].pciBusID << std::endl;
             std::cout << "UUID: " << deviceInfo[i].uuid << std::endl;
@@ -227,7 +246,12 @@ void printDeviceInfo(const std::vector<DeviceInfo> &deviceInfo, bool isPrintOpti
                 }
             }
         } else {
-            std::cout << getColorString("Running processes not found", RED_TEXT) << std::endl;
+            std::string message = "Running processes not found";
+            if (isPrintPlainOutput) {
+                std::cout << message << std::endl;
+            } else {
+                std::cout << getColorString(message, RED_TEXT) << std::endl;
+            }
         }
         std::cout << std::endl;
     }
@@ -246,12 +270,15 @@ void printHelpInfo() {
     std::cout << "-h,   --help                Print usage information and exit." << std::endl;
     std::cout << "<no arguments>              Show a summary of GPUs connected to the system." << std::endl;
     std::cout << "-a                          Display extra info." << std::endl;
+    std::cout << "--plain-output              Display info as plain text." << std::endl;
+    std::cout << std::endl;
 }
 
 void parseParameters(
     const std::vector<std::string> &argvString,
     bool &isPrintOptionalInfoOfDevice,
-    bool &isPrintHelpInfo
+    bool &isPrintHelpInfo,
+    bool &isPrintPlainOutput
 ) {
     const int argc = argvString.size();
     // the first args is name of file.
@@ -259,7 +286,11 @@ void parseParameters(
         bool isAction = false;
         // the first iteration - looking for doesn't provided options.
         for (int i = 1; i < argc; ++i) {
-            if (argvString[i].compare("-a") != 0 && argvString[i].compare("-h") != 0 && argvString[i].compare("--help") != 0) {
+            if (argvString[i].compare("-a") != 0 &&
+                argvString[i].compare("-h") != 0 &&
+                argvString[i].compare("--help") != 0 &&
+                argvString[i].compare("--plain-output") != 0
+            ) {
                 throw std::string("Invalid combination of input arguments. Please run 'nvidia-cdl -h' for help.");
             } else {
                 // while provides one options at one time.
@@ -278,6 +309,8 @@ void parseParameters(
                 isPrintOptionalInfoOfDevice = true;
             } else if (argvString[i].compare("-h") == 0 || argvString[i].compare("--help") == 0) {
                 isPrintHelpInfo = true;
+            } else if (argvString[i].compare("--plain-output") == 0) {
+                isPrintPlainOutput = true;
             } else {
                 throw std::string("Invalid combination of input arguments. Please run 'nvidia-cdl -h' for help.");
             }
@@ -348,12 +381,13 @@ int main(int argc, char** argv) {
         // option -a
         bool isPrintOptionalInfoOfDevice = false;
         bool isPrintHelpInfo = false;
+        bool isPrintPlainOutput = false;
 
         std::vector<std::string> argvString;
         for (int i = 0; i < argc; ++i) {
             argvString.push_back(std::string(argv[i]));
         }
-        parseParameters(argvString, isPrintOptionalInfoOfDevice, isPrintHelpInfo);
+        parseParameters(argvString, isPrintOptionalInfoOfDevice, isPrintHelpInfo, isPrintPlainOutput);
 
         if (isPrintHelpInfo) {
             printHelpInfo();
@@ -361,11 +395,12 @@ int main(int argc, char** argv) {
         }
 
         const std::vector<std::string> pciBusIDArray = getPCIBusIDByCudaLibrary();
-        std::vector<DeviceInfo> deviceInfoFromNVML = getDeviceInfoByNVML(pciBusIDArray);
+        std::string driverVersionString;
+        std::vector<DeviceInfo> deviceInfoFromNVML = getDeviceInfoByNVML(pciBusIDArray, driverVersionString);
 
         findProccessesRunningOnDevices(deviceInfoFromNVML);
 
-        printDeviceInfo(deviceInfoFromNVML, isPrintOptionalInfoOfDevice);
+        printDeviceInfo(deviceInfoFromNVML, driverVersionString, isPrintOptionalInfoOfDevice, isPrintPlainOutput);
 
     } catch (std::string &message) {
         std::cout << message << std::endl;
