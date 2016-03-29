@@ -1,6 +1,3 @@
-# Path to NVIDIA's NVML library
-NVML_DIR=/usr/local/nvidia-nvml
-
 # Path to NVIDIA nvcc (included with CUDA)
 NVCC=/usr/local/cuda/bin/nvcc
 
@@ -21,8 +18,8 @@ PROGRAM=nvidia-cdl
 
 $(PROGRAM):
 	
-	$(NVCC) -c -o $(PROGRAM).o $(PROGRAM).cu -I$(NVML_DIR)/include
-	$(NVCC) $(PROGRAM).o -lnvidia-ml -o $(PROGRAM) -lcudart_static -L$(NVML_DIR)/lib
+	$(NVCC) -c -o $(PROGRAM).o $(PROGRAM).cu -I./
+	$(NVCC) $(PROGRAM).o -lnvidia-ml -o $(PROGRAM) -lcudart_static
 
 clean:
 	rm -f $(PROGRAM) $(PROGRAM).o
